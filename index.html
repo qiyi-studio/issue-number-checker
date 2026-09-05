@@ -96,10 +96,52 @@ details summary{cursor:pointer;font-weight:600;color:#1565c0;font-size:13px}
 <body>
 <div class="wrap">
 <h1>🎯 期號檢查器（網頁版）</h1>
-<div class="sub">自動判定邏輯移植自現行 Node 工具的 <b>lib.js／core.js</b>，判定規則完全一致。<b>全程在本機瀏覽器執行，資料不會上傳。</b></div>
+<div class="sub">
+  <span style="display:inline-block;background:#e3f0fc;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:1px 8px;font-weight:700;margin-right:6px">v1.1 · 公開版 · 2026-09-06</span>
+  自動判定邏輯移植自現行 Node 工具的 <b>lib.js／core.js</b>，判定規則完全一致。<b>全程在本機瀏覽器執行，資料不會上傳。</b>
+</div>
+<div class="warnbox" style="margin:0 0 14px">
+  <b>📌 使用方式：下載後在本機開啟。</b>本檔案不含平台設定，第一次開啟時請貼上部門提供的
+  <code>platforms.json</code> 內容（向主管或共享資料夾索取），設定只會存在你這台電腦。
+  雲端硬碟／GitHub 的預覽畫面不會執行程式，請務必先下載再開啟。
+</div>
 
-<div class="panel">
-  <h2>① 取得資料</h2>
+<div class="panel" id="setupPanel" style="display:none;border-color:#90caf9">
+  <h2>⚙️ 平台設定</h2>
+  <div class="warnbox" style="margin:0 0 12px;background:#e8f4fd;border-color:#90caf9;color:#0d3c61">
+    <b>第一次使用要做的事：</b>把要檢查的平台填進去（或直接選檔案）。<br>
+    設定<b>只會存在你這台電腦</b>，不會上傳、也不會寫回檔案。<b>做過一次之後就不用再做</b>，下次打開直接可用。<br>
+    <b>不知道要填什麼？</b>向主管或部門共享資料夾索取平台清單，照著填進下面表格即可。
+  </div>
+
+  <div style="border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:12px;background:#fbfcfd">
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">平台清單</div>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 8px">
+      一個平台一列。<b>代號</b>填 2～3 個英文字母（自己好認就好，例如 AA、FB）；
+      <b>網址</b>要完整、含 <code>https://</code>，結尾不用加斜線。</p>
+    <table style="width:100%;font-size:12.5px">
+      <thead><tr>
+        <th style="cursor:default;width:90px">代號</th>
+        <th style="cursor:default;width:150px">平台名稱</th>
+        <th style="cursor:default">網址</th>
+        <th style="cursor:default;width:40px"></th>
+      </tr></thead>
+      <tbody id="platRows"></tbody>
+    </table>
+    <button id="platAddRow" style="margin-top:8px">＋ 新增一列</button>
+  </div>
+
+  <div class="bar" style="border-top:1px solid var(--line);padding-top:10px">
+    <button class="pri" id="platSave">✔ 完成，開始使用</button>
+    <button id="platExport">⬇️ 匯出設定備份</button>
+    <button id="platClear">🗑 全部清空</button>
+    <button id="platBack">← 返回</button>
+    <span class="count" id="platMsg"></span>
+  </div>
+</div>
+
+<div class="panel" id="mainPanel">
+  <h2>① 取得資料 <button id="platEdit" style="float:right;font-size:11.5px;padding:3px 9px">⚙️ 平台設定</button></h2>
   <div class="steps">
     <div class="step"><b>① 直接連線（平常用這個）</b><p>勾平台 → 按「直接連線取數」。實測平台 API 允許跨網域，瀏覽器直接打得到，不用貼腳本。<b>記得先連 VPN。</b></p></div>
     <div class="step"><b>② 之後只補未結論的</b><p>凌晨跑完會剩一些「待驗」。之後按 <b>🔁 只重驗還沒結論的</b>，已驗出結論的不會被重查也不會被覆蓋。</p></div>
@@ -184,16 +226,25 @@ details summary{cursor:pointer;font-weight:600;color:#1565c0;font-size:13px}
 "use strict";
 
 /* ══════════ 平台設定 ══════════ */
-var PLAT={
-  FB:{name:"风暴",url:"https://888.fbygd16.com"},
-  MT:{name:"门徒",url:"https://ecf.mtyl33.com"},
-  JD:{name:"焦点",url:"https://888.jddsq88.com"},
-  ND:{name:"辉达",url:"https://888.hdna57.com"},
-  YD:{name:"益达",url:"https://888.ydyule00.com"},
-  TD:{name:"泰达",url:"https://666.tdyule8444.com"}
-};
-var PKS=["FB","MT","JD","ND","YD","TD"];
-
+/* ⚠ 本檔案「不含任何公司資料」。平台代號／名稱／網址由使用者第一次開啟時貼上，
+   只存在這台電腦的 localStorage，不會寫回檔案、不會上傳。
+   所以這個檔案可以安心放在 tiiny.host／Netlify 等公開網址。 */
+var LS_PLAT="pnck_platforms_v1";
+/* ⚠ 本檔案不含任何公司資料。平台代號／名稱／網址由使用者第一次開啟時貼上，
+   只存在該台電腦的 localStorage，不會寫回檔案、不會上傳。
+   因此本檔案可公開存放（GitHub／靜態空間）而不洩漏內部資訊。 */
+var PLAT={},PKS=[];
+function loadPlat(){
+  try{
+    var o=JSON.parse(localStorage.getItem(LS_PLAT)||"null");
+    if(o&&typeof o==="object"&&Object.keys(o).length){ PLAT=o; PKS=Object.keys(o); return true; }
+  }catch(e){}
+  PLAT={};PKS=[];return false;
+}
+function savePlat(o){
+  PLAT=o;PKS=Object.keys(o);
+  try{ localStorage.setItem(LS_PLAT,JSON.stringify(o)); }catch(e){}
+}
 /* ══════════ 判定引擎（移植自 lib.js / core.js） ══════════ */
 var FAMS=[
  {fam:"ymd4",len:12,re:/^(\d{4})(\d{2})(\d{2})(\d{4})$/,label:"年+月日+4位流水（每日歸零）"},
@@ -890,11 +941,95 @@ document.getElementById("csv").onclick=function(){
   document.body.appendChild(a);a.click();a.remove();
 };
 
+/* ── 平台設定面板 ── */
+function showSetup(show){
+  document.getElementById("setupPanel").style.display=show?"":"none";
+  document.getElementById("mainPanel").style.display=show?"none":"";
+  if(show) renderPlatForm(PKS.length?PLAT:null);
+}
+function addPlatRow(k,name,url){
+  var tb=document.getElementById("platRows");
+  var tr=document.createElement("tr");
+  function cell(val,ph,w){
+    var td=document.createElement("td");
+    var i=document.createElement("input");
+    i.type="text"; i.value=val||""; i.placeholder=ph; i.style.width="100%";
+    if(w) i.className=w;
+    td.appendChild(i); tr.appendChild(td); return i;
+  }
+  cell(k,"AA");
+  cell(name,"平台名稱");
+  cell(url,"https://…","mono");
+  var td=document.createElement("td");
+  var b=document.createElement("button");
+  b.textContent="✕"; b.title="刪除這一列";
+  b.style.cssText="color:var(--ng);border-color:#f3b7b7;padding:4px 8px";
+  b.onclick=function(){ tr.remove(); };
+  td.appendChild(b); tr.appendChild(td);
+  tb.appendChild(tr);
+}
+function renderPlatForm(obj){
+  var tb=document.getElementById("platRows"); tb.innerHTML="";
+  if(obj&&Object.keys(obj).length){
+    Object.keys(obj).forEach(function(k){ addPlatRow(k,obj[k].name,obj[k].url); });
+  }else{
+    addPlatRow("","",""); addPlatRow("","",""); addPlatRow("","","");
+  }
+}
+function collectForm(){
+  var out={},n=0,bad=[];
+  [].slice.call(document.querySelectorAll("#platRows tr")).forEach(function(tr){
+    var v=[].slice.call(tr.querySelectorAll("input")).map(function(i){return i.value.trim();});
+    if(!v[0]&&!v[1]&&!v[2]) return;              /* 整列空白 → 略過 */
+    if(!v[0]){ bad.push("有一列沒填代號"); return; }
+    if(!/^https?:\/\//.test(v[2])){ bad.push(v[0]+" 的網址要以 https:// 開頭"); return; }
+    out[v[0].toUpperCase()]={name:v[1]||v[0],url:v[2].replace(/\/+$/,"")};
+    n++;
+  });
+  return {plat:out,count:n,bad:bad};
+}
+function applyPlat(obj,msg){
+  savePlat(obj); renderPlats();
+  document.getElementById("platMsg").textContent="";
+  showSetup(false);
+  if(msg){ clearLog(); log(msg,"g"); }
+}
+document.getElementById("platAddRow").onclick=function(){ addPlatRow("","",""); };
+
+/* 完成 */
+document.getElementById("platSave").onclick=function(){
+  var r=collectForm();
+  if(r.bad.length){ document.getElementById("platMsg").textContent="還有問題："+r.bad.join("；"); return; }
+  if(!r.count){ document.getElementById("platMsg").textContent="請至少填一個平台（代號＋網址）"; return; }
+  applyPlat(r.plat,"已設定 "+r.count+" 個平台，可以開始取數了。");
+};
+document.getElementById("platEdit").onclick=function(){ showSetup(true); };
+document.getElementById("platBack").onclick=function(){
+  if(!PKS.length){ document.getElementById("platMsg").textContent="還沒有任何平台設定，請先填寫"; return; }
+  showSetup(false);
+};
+document.getElementById("platExport").onclick=function(){
+  var r=collectForm();
+  if(!r.count){ alert("目前沒有可匯出的設定。"); return; }
+  var blob=new Blob([JSON.stringify(r.plat,null,2)],{type:"application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="platforms.json";document.body.appendChild(a);a.click();a.remove();
+};
+document.getElementById("platClear").onclick=function(){
+  if(!confirm("確定要清空所有平台設定嗎？")) return;
+  try{ localStorage.removeItem(LS_PLAT); }catch(e){}
+  PLAT={};PKS=[];
+  renderPlatForm(null);
+  document.getElementById("platMsg").textContent="已清空";
+};
+
 /* init */
 (function(){
   var d=new Date(),z=function(n){return String(n).padStart(2,"0");};
   document.getElementById("theDate").value=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
-  renderPlats();
+  var ok=loadPlat();
+  showSetup(!ok);
+  if(ok) renderPlats();
 })();
 
 /* 匯出給測試用 */
