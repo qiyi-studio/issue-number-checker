@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>期號檢查器（網頁版）</title>
+<style>
+:root{
+  --bg:#f4f6f9;--panel:#fff;--line:#dde3e9;--text:#1a2027;--muted:#6b7784;
+  --ng:#c62828;--ngbg:#fdecec;--wt:#ef6c00;--wtbg:#fff6e8;
+  --ok:#2e7d32;--okbg:#e8f5e9;--yr:#1565c0;--yrbg:#e3f0fc;
+  --sk:#68737d;--skbg:#eceff1;--pd:#6a1b9a;--pdbg:#f3e5f5;--yp:#00695c;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Microsoft JhengHei","PingFang TC",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.wrap{max-width:1500px;margin:0 auto;padding:16px 16px 60px}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:12.5px;margin-bottom:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.panel h2{font-size:14.5px;margin:0 0 8px;color:#1565c0}
+.steps{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.step{flex:1;min-width:190px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:#fbfcfd}
+.step b{display:block;font-size:13px;margin-bottom:3px}
+.step p{margin:0;font-size:12px;color:var(--muted);line-height:1.55}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+input[type=text],input[type=search],input[type=date],select,button,textarea{
+  font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid #90caf9;outline-offset:1px}
+button{cursor:pointer}button:hover{background:#eef2f6}
+button.pri{background:#1565c0;color:#fff;border-color:#1565c0;font-weight:600}
+button.pri:hover{background:#0d47a1}
+button.warn{background:var(--ngbg);color:var(--ng);border-color:#f3b7b7;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+textarea{width:100%;font-family:Consolas,ui-monospace,monospace;font-size:11.5px;min-height:90px;resize:vertical}
+.plats{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.pchip{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:#fff;cursor:pointer;user-select:none;font-size:12.5px}
+.pchip input{margin:0}
+.pchip.has{border-color:#2e7d32;background:#f2fbf3}
+.pchip .n{color:var(--muted);font-size:11.5px}
+#drop{border:2px dashed #b9c4d0;border-radius:10px;padding:18px;text-align:center;background:#fbfcfd;cursor:pointer;font-size:13px}
+#drop:hover,#drop.hot{border-color:#1565c0;background:#eef5fd}
+#file{display:none}
+.log{background:#0f172a;color:#cbd5e1;border-radius:8px;padding:9px 11px;font-family:Consolas,monospace;font-size:11.5px;
+  max-height:160px;overflow:auto;white-space:pre-wrap;line-height:1.6}
+.log .e{color:#fca5a5}.log .g{color:#86efac}.log .w{color:#fcd34d}
+.cards{display:flex;gap:9px;flex-wrap:wrap}
+.card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 15px;min-width:104px;cursor:pointer;transition:.12s;user-select:none;border-left-width:4px}
+.card:hover{box-shadow:0 2px 8px rgba(0,0,0,.09);transform:translateY(-1px)}
+.card.on{box-shadow:0 0 0 2px #1565c0 inset}
+.card b{display:block;font-size:21px;line-height:1.2}
+.card span{font-size:11.5px;color:var(--muted)}
+.card.c-all{border-left-color:#90a4ae}
+.card.c-ng{border-left-color:var(--ng)}.card.c-ng b{color:var(--ng)}
+.card.c-wt{border-left-color:var(--wt)}.card.c-wt b{color:var(--wt)}
+.card.c-ok{border-left-color:var(--ok)}.card.c-ok b{color:var(--ok)}
+.card.c-yr{border-left-color:var(--yr)}.card.c-yr b{color:var(--yr)}
+.card.c-yp{border-left-color:#00897b}.card.c-yp b{color:var(--yp)}
+.card.c-pd{border-left-color:var(--pd)}.card.c-pd b{color:var(--pd)}
+.card.c-sk{border-left-color:#b0bec5}.card.c-sk b{color:var(--sk)}
+.tabs{display:flex;gap:5px;flex-wrap:wrap}
+.tab{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;user-select:none}
+.tab:hover{background:#eef2f6}
+.tab.on{background:#1565c0;color:#fff;border-color:#1565c0;font-weight:700}
+.tab i{font-style:normal;opacity:.75;margin-left:4px;font-size:11.5px}
+#q{flex:1;min-width:150px}
+.tblwrap{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:70vh}
+table{border-collapse:collapse;width:100%;font-size:12.8px}
+th,td{border-bottom:1px solid #eef1f4;padding:6px 9px;text-align:left;white-space:nowrap}
+th{background:#eef2f6;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none;font-weight:700}
+th:hover{background:#e2e8ee}
+th .ar{opacity:.45;font-size:10px;margin-left:3px}
+tbody tr:hover td{background:#f5f9ff}
+tr.r-ng td{background:var(--ngbg)}tr.r-wt td{background:var(--wtbg)}
+tr.r-pd td{background:var(--pdbg)}tr.r-sk td{color:var(--sk)}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:700}
+.tag.r-ok{background:var(--okbg);color:var(--ok)}.tag.r-ng{background:#fadbdb;color:var(--ng)}
+.tag.r-wt{background:#fdecd2;color:var(--wt)}.tag.r-sk{background:var(--skbg);color:var(--sk)}
+.tag.r-yr{background:var(--yrbg);color:var(--yr)}.tag.r-pd{background:#ecd7f3;color:var(--pd)}
+.tag.r-yp{background:#dcf0ee;color:var(--yp)}
+.mono{font-family:Consolas,ui-monospace,monospace;letter-spacing:.3px}
+.star{color:var(--yr);font-weight:700;margin-left:3px}
+.diff{color:var(--ng);font-weight:700}
+.note{white-space:normal;min-width:210px;max-width:440px;color:#54606c;font-size:12px}
+.grouphd td{background:#e8eef5;font-weight:700;position:sticky;top:29px;z-index:1;border-top:2px solid #cfd8e3}
+.empty{padding:44px 16px;text-align:center;color:var(--muted)}
+.count{color:var(--muted);font-size:12.5px}
+.warnbox{background:#fff8e1;border:1px solid #ffe082;border-radius:9px;padding:10px 13px;font-size:12.5px;color:#7a5b12;line-height:1.65;margin-top:10px}
+.warnbox b{color:#5d4409}
+details summary{cursor:pointer;font-weight:600;color:#1565c0;font-size:13px}
+@media(max-width:600px){
+  .wrap{padding:10px 8px 50px}.card{min-width:88px;padding:7px 11px}.card b{font-size:18px}
+  th,td{padding:5px 6px;font-size:12px}.note{display:none}.step{min-width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🎯 期號檢查器（網頁版）</h1>
+<div class="sub">自動判定邏輯移植自現行 Node 工具的 <b>lib.js／core.js</b>，判定規則完全一致。<b>全程在本機瀏覽器執行，資料不會上傳。</b></div>
+
+<div class="panel">
+  <h2>① 取得資料</h2>
+  <div class="steps">
+    <div class="step"><b>① 直接連線（平常用這個）</b><p>勾平台 → 按「直接連線取數」。實測平台 API 允許跨網域，瀏覽器直接打得到，不用貼腳本。<b>記得先連 VPN。</b></p></div>
+    <div class="step"><b>② 之後只補未結論的</b><p>凌晨跑完會剩一些「待驗」。之後按 <b>🔁 只重驗還沒結論的</b>，已驗出結論的不會被重查也不會被覆蓋。</p></div>
+    <div class="step"><b>備援：取數腳本</b><p>萬一哪天直連被擋（CORS／網路），改用 F12 貼腳本取數，下載資料檔拖回來，判定結果完全一樣。</p></div>
+  </div>
+
+  <div class="plats" id="plats"></div>
+
+  <div class="bar">
+    <button class="pri" id="btnDirect">▶ 方式 A：直接連線取數</button>
+    <button id="btnRetry" disabled>🔁 只重驗還沒結論的</button>
+    <button id="btnScript">📋 備援：複製取數腳本</button>
+    <button id="btnClear">🗑 清除今日累積</button>
+    <span style="flex:1"></span>
+    <label style="font-size:12.5px;color:var(--muted)">驗什麼
+      <select id="mode">
+        <option value="latest">最近一次換日（＝每日檢驗）</option>
+        <option value="date">指定日期（選 1/1 就是跨年檢查）</option>
+      </select>
+    </label>
+    <input type="date" id="theDate" style="display:none">
+  </div>
+
+  <div id="drop">📂 把取數腳本下載的資料檔拖進來（可一次多個），或點這裡選檔</div>
+  <input type="file" id="file" accept=".json,application/json" multiple>
+  <div class="log" id="log" style="display:none;margin-top:10px"></div>
+
+  <div class="warnbox">
+    <b>⚠️ 一定要先連 VPN。</b>平台自 2026-09-03 起擋台灣 IP，沒連 VPN 時 API 會回 <code>error_code 10000</code>（HTTP 仍是 200）。本工具認得這種回應會直接停下並提示，<b>不會產生「0 檔、全部通過」的假報表</b>。<br>
+    <b>⚠️ 歷史只回 120 筆。</b>分分彩一天 1440 期，只涵蓋約 2 小時，所以要在該彩種換日後 2 小時內取數，否則會是「待驗」。
+  </div>
+</div>
+
+<div class="panel" id="app" style="display:none">
+  <h2>② 檢驗結果</h2>
+  <div class="cards" id="cards"></div>
+  <div class="bar"><div class="tabs" id="tabs"></div></div>
+  <div class="bar">
+    <input type="search" id="q" placeholder="🔍 搜尋彩種名稱、期號、說明…">
+    <select id="kind">
+      <option value="">類別：全部</option>
+      <option value="每日歸零">每日歸零</option>
+      <option value="全年累計">全年累計</option>
+      <option value="不隨日期">不隨日期</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);cursor:pointer">
+      <input type="checkbox" id="grp"> 依平台分組
+    </label>
+    <button class="warn" id="onlyNg">只看要處理的（錯誤）</button>
+    <button id="reset">清除篩選</button>
+    <span style="flex:1"></span>
+    <span class="count" id="cnt"></span>
+    <button id="csv">⬇️ 匯出目前結果</button>
+  </div>
+</div>
+<div class="panel" id="retryPanel" style="display:none">
+  <h2>🔁 還沒結論的怎麼辦</h2>
+  <div id="retryPlan" style="font-size:12.5px;line-height:1.7"></div>
+  <div class="warnbox" style="margin-top:10px">
+    結果會<b>累積在這台電腦的瀏覽器裡</b>（同一天／同一個檢驗日期）。重跑時已經有結論的彩種<b>不會被重查、也不會被覆蓋</b>，
+    只補上還沒結論的那些——所以早班重跑不會把凌晨已經驗到的結果弄丟。
+  </div>
+</div>
+<div class="tblwrap" id="tw" style="display:none"><table>
+  <thead><tr id="thr"></tr></thead><tbody id="tb"></tbody>
+</table></div>
+
+<details class="panel" id="scriptPanel" style="display:none">
+  <summary>取數腳本（點開可手動複製）</summary>
+  <p style="font-size:12.5px;color:var(--muted);line-height:1.7">
+  在<b>該平台的網頁</b>上按 <b>F12</b> → 切到 <b>Console</b> 分頁 → 貼上下面整段 → 按 Enter。
+  跑完會自動下載一個 <code>期號原始資料_平台_日期.json</code>，把它拖回上面即可。六個平台各做一次。<br>
+  （首次貼上時 Chrome 可能要求你先輸入 <code>allow pasting</code> 再按 Enter，這是瀏覽器的防呆。）</p>
+  <textarea id="scriptBox" readonly style="min-height:150px"></textarea>
+</details>
+
+<div class="sub" style="text-align:center;margin-top:20px">單一檔案・無外部套件・可放 tiiny.host／Netlify・唯讀，不碰投注功能</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════ 平台設定 ══════════ */
+var PLAT={
+  FB:{name:"风暴",url:"https://888.fbygd16.com"},
+  MT:{name:"门徒",url:"https://ecf.mtyl33.com"},
+  JD:{name:"焦点",url:"https://888.jddsq88.com"},
+  ND:{name:"辉达",url:"https://888.hdna57.com"},
+  YD:{name:"益达",url:"https://888.ydyule00.com"},
+  TD:{name:"泰达",url:"https://666.tdyule8444.com"}
+};
+var PKS=["FB","MT","JD","ND","YD","TD"];
+
+/* ══════════ 判定引擎（移植自 lib.js / core.js） ══════════ */
+var FAMS=[
+ {fam:"ymd4",len:12,re:/^(\d{4})(\d{2})(\d{2})(\d{4})$/,label:"年+月日+4位流水（每日歸零）"},
+ {fam:"ymd3",len:11,re:/^(\d{4})(\d{2})(\d{2})(\d{3})$/,label:"年+月日+3位流水（每日歸零）"},
+ {fam:"ymd2",len:10,re:/^(\d{4})(\d{2})(\d{2})(\d{2})$/,label:"年+月日+2位流水（每日歸零）"},
+ {fam:"roc", len:9, re:/^(\d{3})(\d{6})$/,              label:"民國年+6位流水（全年累計）"},
+ {fam:"y3",  len:7, re:/^(\d{4})(\d{3})$/,              label:"西元年+3位流水（全年累計）"},
+ {fam:"yy3", len:5, re:/^(\d{2})(\d{3})$/,              label:"年後兩碼+3位流水（全年累計）"}
+];
+function detect(cycle,year){
+  var v=String(cycle==null?"":cycle).trim();
+  if(!/^\d+$/.test(v)) return null;
+  for(var i=0;i<FAMS.length;i++){
+    var f=FAMS[i]; if(v.length!==f.len) continue;
+    var m=v.match(f.re); if(!m) continue;
+    if(f.fam==="roc"){
+      var roc=Number(m[1]);
+      if(roc<year-1911-1||roc>year-1911+1) continue;
+      return{fam:f.fam,label:f.label,year:roc+1911,rocYear:roc,seq:m[2],datePart:null};
+    }
+    if(f.fam==="yy3"){
+      var yy=Number(m[1]);
+      if(yy<(year%100)-1||yy>(year%100)+1) continue;
+      return{fam:f.fam,label:f.label,year:2000+yy,seq:m[2],datePart:null};
+    }
+    if(f.fam==="y3"){
+      var y3=Number(m[1]);
+      if(y3<year-1||y3>year+1) continue;
+      return{fam:f.fam,label:f.label,year:y3,seq:m[2],datePart:null};
+    }
+    var y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);
+    if(y<year-1||y>year+1) continue;
+    if(mo<1||mo>12||d<1||d>31) continue;
+    return{fam:f.fam,label:f.label,year:y,seq:m[4],datePart:m[2]+m[3]};
+  }
+  return null;
+}
+function expectFirst(fam,year){
+  switch(fam){
+    case"ymd4":return String(year)+"01010001";
+    case"ymd3":return String(year)+"0101001";
+    case"ymd2":return String(year)+"010101";
+    case"roc": return String(year-1911)+"000001";
+    case"y3":  return String(year)+"001";
+    case"yy3": return String(year%100).padStart(2,"0")+"001";
+  }
+  return null;
+}
+function expectDayFirst(fam,year,mmdd){
+  switch(fam){
+    case"ymd4":return String(year)+mmdd+"0001";
+    case"ymd3":return String(year)+mmdd+"001";
+    case"ymd2":return String(year)+mmdd+"01";
+  }
+  return null;
+}
+function ts(s){var d=new Date(String(s==null?"":s).replace(" ","T"));return isNaN(d)?null:d.getTime();}
+function gapLimit(hist){
+  var gaps=[];
+  for(var i=0;i<hist.length-1;i++){
+    var a=ts(hist[i].open_time),b=ts(hist[i+1].open_time);
+    if(a!=null&&b!=null&&a>b) gaps.push(a-b);
+  }
+  gaps.sort(function(x,y){return x-y;});
+  var typical=gaps.length?gaps[Math.floor((gaps.length-1)/2)]:null;
+  return{typical:typical,limit:typical?Math.max(typical*5,3600e3):null};
+}
+function spanTxt(ms){
+  if(!(ms>0))return"約 0 小時";
+  var h=ms/3600e3;
+  return h<48?("約 "+Math.round(h)+" 小時"):("約 "+Math.round(h/24)+" 天");
+}
+function yearTxt(det){
+  if(det.fam==="roc")return"民國 "+det.rocYear+"（"+det.year+" 年）";
+  if(det.fam==="yy3")return String(det.year%100).padStart(2,"0")+"（"+det.year+" 年）";
+  return String(det.year);
+}
+function gapNote(prev,first,limit){
+  var ga=ts(first.open_time),gb=ts(prev.open_time);
+  if(limit==null||ga==null||gb==null||(ga-gb)<=limit) return null;
+  return{span:spanTxt(ga-gb),since:prev.open_time};
+}
+function findReset(hist,year){
+  /* ⚠ 這裡刻意用 lib.js 的中位數取法 gaps[floor(len/2)]，
+     與 core.js 的 gapLimit（floor((len-1)/2)）不同。
+     原版 judgeLatest 呼叫的是 lib.findReset，為求逐案一致，照原樣保留。 */
+  var gaps=[],i2;
+  for(i2=0;i2<hist.length-1;i2++){
+    var a2=ts(hist[i2].open_time),b2=ts(hist[i2+1].open_time);
+    if(a2!=null&&b2!=null&&a2>b2) gaps.push(a2-b2);
+  }
+  gaps.sort(function(x,y){return x-y;});
+  var typical=gaps.length?gaps[Math.floor(gaps.length/2)]:null;
+  var limit=typical?Math.max(typical*5,3600e3):null;
+  for(var i=0;i<hist.length-1;i++){
+    var a=detect(hist[i].cycle_value,year),b=detect(hist[i+1].cycle_value,year);
+    if(!a||!b) continue;
+    var type=null;
+    if(a.datePart&&b.datePart){ if(a.datePart!==b.datePart) type="day"; }
+    else if(a.year!==b.year) type="year";
+    if(!type) continue;
+    var ga=ts(hist[i].open_time),gb=ts(hist[i+1].open_time);
+    if(limit!=null&&ga!=null&&gb!=null&&(ga-gb)>limit){
+      return{gap:true,prev:hist[i+1],first:hist[i],det:a,type:type,
+             gapDays:Math.round((ga-gb)/86400e3),typicalMin:Math.round(typical/60000)};
+    }
+    return{prev:hist[i+1],first:hist[i],det:a,type:type};
+  }
+  return null;
+}
+function estimateResetHHMM(hist,YEAR){
+  if(!hist||hist.length<3) return null;
+  var typical=gapLimit(hist).typical;
+  var top=hist[0],det=detect(top.cycle_value,YEAR);
+  var seq=det&&det.datePart?det.seq:null,t=ts(top.open_time);
+  if(!seq||t==null||!typical) return null;
+  var d=new Date(t-(Number(seq)-1)*typical);
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function judgeLatest(r,YEAR){
+  var det=detect(r.now,YEAR);
+  var row={now:r.now,fam:det?det.fam:null,famLabel:det?det.label:null};
+  if(!det){ row.kind="不隨日期";row.result="免驗";row.note="期號不含年份／日期，跨點不會變動";return row; }
+  row.kind=det.datePart?"每日歸零":"全年累計";
+  var hist=r.hist||[];
+  var reset=findReset(hist,YEAR),gn="",pauseNote="";
+  if(reset&&reset.gap){
+    var want0=reset.type==="day"?expectDayFirst(reset.det.fam,reset.det.year,reset.det.datePart)
+                                :expectFirst(reset.det.fam,reset.det.year);
+    var span=spanTxt(ts(reset.first.open_time)-ts(reset.prev.open_time));
+    if(reset.first.cycle_value===want0){ pauseNote="（交界前空了"+span+"，屬停開時段）"; }
+    else{ gn="（歷史在 "+reset.prev.open_time+" 之後斷了約 "+reset.gapDays+" 天，那個跳點不是真的歸零，已略過）"; reset=null; }
+  }
+  if(reset){
+    var want=reset.type==="day"?expectDayFirst(reset.det.fam,reset.det.year,reset.det.datePart)
+                               :expectFirst(reset.det.fam,reset.det.year);
+    row.resetType=reset.type; row.prev=reset.prev.cycle_value; row.first=reset.first.cycle_value;
+    row.expect=want; row.at=reset.first.open_time;
+    row.result=reset.first.cycle_value===want?"正確":"錯誤";
+    row.note=(reset.type==="year"?"★跨年歸零":"")+pauseNote;
+    return row;
+  }
+  if(row.kind==="全年累計"){
+    row.result=det.year===YEAR?"年份正確":"錯誤";
+    row.expect="年份前綴 "+(det.fam==="roc"?(YEAR-1911):det.fam==="yy3"?String(YEAR%100):YEAR);
+    row.note=(det.year===YEAR?"全年累計，非 1/1 不會歸零；已確認年份前綴正確":"年份前綴是 "+det.year)+gn;
+  }else{
+    row.result="待驗"; row.retry=true; row.resetHHMM=estimateResetHHMM(hist,YEAR);
+    row.note="歷史只回 120 筆，回溯不到換日點"
+      +(row.resetHHMM?"。這檔每天約 "+row.resetHHMM+" 換日，請在那之後 2 小時內再跑一次":"——請在它換日後 2 小時內再跑一次")+gn;
+  }
+  return row;
+}
+function judgeDate(r,dateStr,YEAR){
+  var m=String(dateStr||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) throw new Error("日期格式要是 YYYY-MM-DD："+dateStr);
+  var dy=Number(m[1]),mmdd=m[2]+m[3],isNewYear=mmdd==="0101",refYear=dy;
+  var det=detect(r.now,refYear)||detect(r.now,YEAR);
+  var row={now:r.now,fam:det?det.fam:null,famLabel:det?det.label:null,date:dateStr};
+  if(!det){ row.kind="不隨日期";row.result="免驗";row.note="期號不含年份／日期，跨點不會變動";return row; }
+  row.kind=det.datePart?"每日歸零":"全年累計";
+  var hist=r.hist||[],limit=gapLimit(hist).limit;
+  var dets=hist.map(function(h){return detect(h.cycle_value,refYear);});
+  var nowIsBefore=det.datePart?(det.year<dy||(det.year===dy&&det.datePart<mmdd)):(det.year<dy);
+  var i,a,b,g;
+  if(row.kind==="每日歸零"){
+    row.expect=expectDayFirst(det.fam,dy,mmdd);
+    for(i=hist.length-2;i>=0;i--){
+      a=dets[i];b=dets[i+1];
+      if(!a||!b) continue;
+      if(a.year===dy&&a.datePart===mmdd&&!(b.year===dy&&b.datePart===mmdd)){
+        row.prev=hist[i+1].cycle_value;row.first=hist[i].cycle_value;row.at=hist[i].open_time;
+        row.resetType=(isNewYear&&b.year!==a.year)?"year":"day";
+        g=gapNote(hist[i+1],hist[i],limit);
+        if(row.first===row.expect){
+          row.result="正確";
+          row.note=(row.resetType==="year"?"★跨年歸零":"")+(g?"（交界前空了"+g.span+"，屬停開時段）":"");
+        }else if(g){
+          row.result="待驗";
+          row.note="歷史在 "+g.since+" 之後空了"+g.span+"，那個跳點不一定是真的換日，無法判定（看到的第一期 "+row.first+"，應為 "+row.expect+"）";
+        }else{
+          row.result="錯誤"; row.note=row.resetType==="year"?"★跨年歸零":"";
+        }
+        return row;
+      }
+    }
+    var hasDay=dets.some(function(d){return d&&d.year===dy&&d.datePart===mmdd;});
+    if(nowIsBefore&&!hasDay){
+      row.result="尚未發生";row.retry=true;
+      row.note="那一天還沒到，等它換日後（約 2 小時內）再驗；到時第一期應為 "+row.expect;
+      return row;
+    }
+    row.result="待驗"; row.resetHHMM=estimateResetHHMM(hist,refYear);
+    var oldest=hist.length?hist[hist.length-1]:null;
+    row.note=hasDay
+      ?"歷史只回 120 筆，最舊一筆已經是那天的（"+(oldest?oldest.cycle_value:"")+"），回溯不到換日交界"
+      :"歷史只回 120 筆，回溯不到 "+dateStr+"（最舊一筆 "+(oldest?oldest.cycle_value+" "+oldest.open_time:"無")+"）";
+    if(row.resetHHMM) row.note+="。這檔每天約 "+row.resetHHMM+" 換日，要驗當天請在換日後 2 小時內跑";
+    return row;
+  }
+  if(isNewYear){
+    row.expect=expectFirst(det.fam,dy);
+    for(i=hist.length-2;i>=0;i--){
+      a=dets[i];b=dets[i+1];
+      if(!a||!b) continue;
+      if(a.year===dy&&b.year!==dy){
+        row.prev=hist[i+1].cycle_value;row.first=hist[i].cycle_value;row.at=hist[i].open_time;row.resetType="year";
+        g=gapNote(hist[i+1],hist[i],limit);
+        if(row.first===row.expect){ row.result="正確";row.note="★跨年歸零"+(g?"（交界前空了"+g.span+"，屬停開時段）":""); }
+        else if(g){ row.result="待驗";row.note="歷史在 "+g.since+" 之後空了"+g.span+"，那個跳點不一定是真的跨年，無法判定（看到的第一期 "+row.first+"，應為 "+row.expect+"）"; }
+        else{ row.result="錯誤";row.note="★跨年歸零"; }
+        return row;
+      }
+    }
+    if(nowIsBefore){ row.result="尚未發生";row.retry=true;row.note="還沒跨到 "+dy+" 年；跨年後第一期應為 "+row.expect;return row; }
+    row.result=det.year===dy?"年份正確":"錯誤";
+    row.note=det.year===dy
+      ?"歷史回溯不到 1/1 的交界，但目前期號的年份前綴已是 "+yearTxt(det)+"（第一期應為 "+row.expect+"）"
+      :"年份前綴是 "+yearTxt(det)+"，應為 "+dy+" 年";
+    return row;
+  }
+  row.result=det.year===dy?"年份正確":"錯誤";
+  row.expect="年份前綴 "+(det.fam==="roc"?(dy-1911):det.fam==="yy3"?String(dy%100):dy);
+  row.note=det.year===dy?"全年累計，非 1/1 不會歸零；已確認年份前綴正確":"年份前綴是 "+yearTxt(det)+"，應為 "+dy+" 年";
+  return row;
+}
+
+/* ══════════ 取數 ══════════ */
+var Q_LIST='query($input:LotteryGamePageListInputObj){LotteryGamePageList(input:$input){lottery_game_list{game_id game_value is_active}page_data{pages}}}';
+var Q_HIST='query($g:Int!,$n:Int){LotteryGame(game_id:$g){game_value lottery_cycle_now{now_cycle_value}lottery_result_history(row_count:$n){cycle_value open_time}}}';
+
+function isGeo(errs){
+  var e=Array.isArray(errs)&&errs.length?errs[0]:null;
+  if(!e) return false;
+  var msg=e.message;
+  return e.error_code===10000||(msg&&typeof msg==="object"&&("redirect_url"in msg||"country_code"in msg));
+}
+function gql(base,query,variables){
+  return fetch(base+"/APIV2/GraphQL",{
+    method:"POST",headers:{"content-type":"application/json"},
+    body:JSON.stringify({query:query,variables:variables})
+  }).then(function(r){return r.json();}).then(function(j){
+    if(j.errors){ var e=new Error(isGeo(j.errors)?"GEO":"API 錯誤"); e.geo=isGeo(j.errors); throw e; }
+    return j.data;
+  });
+}
+function pool(items,n,fn){
+  var out=new Array(items.length),i=0;
+  var workers=[];
+  for(var w=0;w<Math.min(n,items.length);w++){
+    workers.push((function loop(){
+      if(i>=items.length) return Promise.resolve();
+      var k=i++;
+      return Promise.resolve().then(function(){return fn(items[k]);})
+        .then(function(v){out[k]=v;},function(e){out[k]={__error:String(e&&e.message||e)};})
+        .then(loop);
+    })());
+  }
+  return Promise.all(workers).then(function(){return out;});
+}
+
+/* ══════════ 狀態 ══════════ */
+var raw={};   /* pk -> [{game_id,name,now,hist}] */
+var rows=[];
+/* ── 每日累積狀態（等同 Node 版的 daily\YYYY-MM-DD.json）──
+   已經有結論（正確／錯誤／年份正確／免驗）的彩種不再重查，也不會被後續重跑覆蓋掉。
+   否則早班重跑時，凌晨已驗到的換日交界早就被推出 120 筆歷史，正確會倒退成待驗。 */
+var LS="pnck_daily_v1";
+var CONCLUDED={"正確":1,"錯誤":1,"年份正確":1,"免驗":1};
+var saved={key:"",rows:{}};
+function stateKey(){
+  var m=document.getElementById("mode").value;
+  return m==="date" ? ("D"+document.getElementById("theDate").value) : ("L"+todayISO());
+}
+function todayISO(){var d=new Date(),z=function(n){return String(n).padStart(2,"0");};
+  return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());}
+function loadSaved(){
+  var k=stateKey();
+  try{ var o=JSON.parse(localStorage.getItem(LS)||"{}");
+       saved=(o&&o.key===k)?o:{key:k,rows:{}}; }
+  catch(e){ saved={key:k,rows:{}}; }
+}
+function persist(){ try{ localStorage.setItem(LS,JSON.stringify(saved)); }catch(e){} }
+function isDone(pk,id){
+  var r=saved.rows[pk+"|"+id];
+  return !!(r&&CONCLUDED[r.result]);
+}
+var fPlat="ALL",fRes="ALL",fKind="",q="",grouped=false,sortKey="",sortDir=1;
+
+function log(msg,cls){
+  var el=document.getElementById("log"); el.style.display="";
+  var s=document.createElement("span");
+  if(cls) s.className=cls;
+  s.textContent=msg+"\n"; el.appendChild(s); el.scrollTop=el.scrollHeight;
+}
+function clearLog(){ var el=document.getElementById("log"); el.innerHTML=""; el.style.display="none"; }
+
+/* ══════════ 平台勾選 ══════════ */
+function renderPlats(){
+  var el=document.getElementById("plats"); el.innerHTML="";
+  PKS.forEach(function(pk){
+    var lbl=document.createElement("label");
+    lbl.className="pchip"+(raw[pk]?" has":"");
+    var cb=document.createElement("input");
+    cb.type="checkbox"; cb.checked=true; cb.dataset.pk=pk;
+    lbl.appendChild(cb);
+    var t=document.createElement("span");
+    t.innerHTML=pk+" "+PLAT[pk].name+(raw[pk]?' <span class="n">已載入 '+raw[pk].length+" 檔</span>":"");
+    lbl.appendChild(t);
+    el.appendChild(lbl);
+  });
+}
+function chosen(){
+  return [].slice.call(document.querySelectorAll("#plats input:checked")).map(function(c){return c.dataset.pk;});
+}
+
+/* ══════════ 方式 A：直接連線 ══════════ */
+function runDirect(onlyUnresolved,btn){
+  var pks=chosen();
+  if(!pks.length){ alert("請至少勾選一個平台。"); return; }
+  loadSaved();
+  clearLog();
+  log(onlyUnresolved?"只重查還沒結論的彩種…":"開始直接連線…");
+  btn.disabled=true;
+  var done=0,geo=0,cors=0;
+  var seq=Promise.resolve();
+  pks.forEach(function(pk){
+    seq=seq.then(function(){
+      log("["+pk+" "+PLAT[pk].name+"] 取彩種清單…");
+      return grabPlatform(pk,function(m,c){log("   "+m,c);},onlyUnresolved).then(function(list){
+        raw[pk]=(raw[pk]||[]).filter(function(g){
+          return !list.some(function(x){return x.game_id===g.game_id;});
+        }).concat(list);
+        done++; log("   ✔ 取得 "+list.length+" 檔","g");
+      },function(e){
+        if(e&&e.geo){ geo++; log("   ✘ 被地區封鎖：請先連 VPN","e"); }
+        else if(e&&e.cors){ cors++; log("   ✘ 被瀏覽器 CORS 擋下——請改用方式 B（取數腳本）","e"); }
+        else log("   ✘ "+(e&&e.message||e),"e");
+      });
+    });
+  });
+  seq.then(function(){
+    btn.disabled=false;
+    document.getElementById("btnRetry").disabled=false;
+    renderPlats();
+    if(geo) log("\n✋ 平台擋台灣 IP，請先連 VPN 再試。未產生任何結果。","w");
+    if(cors) log("\n➡ 瀏覽器不允許本頁跨網域呼叫平台 API（CORS）。\n   這是瀏覽器的安全限制，無法用程式繞過。\n   請按「📋 方式 B：複製取數腳本」，改用同源取數。","w");
+    if(done) judgeAll();
+  });
+}
+document.getElementById("btnDirect").onclick=function(){ runDirect(false,this); };
+document.getElementById("btnRetry").onclick=function(){ runDirect(true,this); };
+function grabPlatform(pk,onLog,onlyUnresolved){
+  var base=PLAT[pk].url,all=[],page=1,pages=1;
+  function nextPage(){
+    return gql(base,Q_LIST,{input:{page:page}}).then(function(d){
+      all=all.concat(d.LotteryGamePageList.lottery_game_list);
+      pages=d.LotteryGamePageList.page_data.pages; page++;
+      if(page<=pages) return nextPage();
+    });
+  }
+  return nextPage().catch(function(e){
+    if(e&&e.geo) throw e;
+    var err=new Error("連線失敗（可能是 CORS 或網路）"); err.cors=true; throw err;
+  }).then(function(){
+    var games=all.filter(function(g){return g.is_active;});
+    var total=games.length;
+    if(onlyUnresolved) games=games.filter(function(g){return !isDone(pk,g.game_id);});
+    onLog("共 "+total+" 檔啟用中，本次要查 "+games.length+" 檔…");
+    if(!games.length) return [];
+    return pool(games,6,function(g){
+      return gql(base,Q_HIST,{g:g.game_id,n:120}).then(function(d){
+        var G=d.LotteryGame||{};
+        return{game_id:g.game_id,name:g.game_value,
+               now:(G.lottery_cycle_now||{}).now_cycle_value,
+               hist:G.lottery_result_history||[]};
+      });
+    }).then(function(res){
+      return res.filter(function(x){return x&&!x.__error;});
+    });
+  });
+}
+
+/* ══════════ 方式 B：取數腳本 ══════════ */
+function buildScript(){
+  return "(async()=>{const Q1="+JSON.stringify(Q_LIST)+",Q2="+JSON.stringify(Q_HIST)+";"
+   +"const g=async(q,v)=>{const r=await fetch(location.origin+'/APIV2/GraphQL',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q,variables:v})});const j=await r.json();"
+   +"if(j.errors){if(j.errors[0]&&(j.errors[0].error_code===10000)){throw new Error('被地區封鎖：請先連 VPN');}throw new Error(JSON.stringify(j.errors).slice(0,150));}return j.data;};"
+   +"let all=[],p=1,ps=1;do{const d=await g(Q1,{input:{page:p}});all=all.concat(d.LotteryGamePageList.lottery_game_list);ps=d.LotteryGamePageList.page_data.pages;p++;}while(p<=ps);"
+   +"const gs=all.filter(x=>x.is_active);console.log('啟用中彩種：'+gs.length+' 檔，開始取歷史…');"
+   +"const out=[];let i=0;const work=async()=>{while(i<gs.length){const k=i++;const x=gs[k];try{const d=await g(Q2,{g:x.game_id,n:120});const G=d.LotteryGame||{};"
+   +"out.push({game_id:x.game_id,name:x.game_value,now:(G.lottery_cycle_now||{}).now_cycle_value,hist:G.lottery_result_history||[]});}catch(e){}"
+   +"if(out.length%25===0)console.log('  '+out.length+'/'+gs.length);}};"
+   +"await Promise.all([work(),work(),work(),work(),work(),work()]);"
+   +"const host=location.host;const pk=("+JSON.stringify(Object.keys(PLAT).map(function(k){return[k,PLAT[k].url.replace(/^https?:\/\//,"")];}))+".find(a=>host.indexOf(a[1])>=0)||['??'])[0];"
+   +"const d=new Date(),z=n=>String(n).padStart(2,'0');const day=d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());"
+   +"const blob=new Blob([JSON.stringify({pk:pk,host:host,at:d.toISOString(),games:out})],{type:'application/json'});"
+   +"const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='期號原始資料_'+pk+'_'+day+'.json';document.body.appendChild(a);a.click();a.remove();"
+   +"console.log('%c✔ 完成！已下載 '+out.length+' 檔資料，請把檔案拖回檢查器。','color:#0a0;font-weight:bold');})();";
+}
+document.getElementById("btnScript").onclick=function(){
+  var s=buildScript();
+  document.getElementById("scriptBox").value=s;
+  document.getElementById("scriptPanel").style.display="";
+  document.getElementById("scriptPanel").open=true;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(s).then(function(){
+      alert("取數腳本已複製！\n\n1. 開啟平台網頁（記得先連 VPN）\n2. 按 F12 → Console\n3. 貼上並按 Enter\n4. 跑完會自動下載資料檔，拖回本頁即可\n\n六個平台各做一次。");
+    },function(){ alert("已顯示在下方，請手動全選複製。"); });
+  }else alert("已顯示在下方，請手動全選複製。");
+  var sp=document.getElementById("scriptPanel");
+  if(sp.scrollIntoView) sp.scrollIntoView({behavior:"smooth"});
+};
+
+/* ══════════ 載入資料檔 ══════════ */
+var drop=document.getElementById("drop"),fileEl=document.getElementById("file");
+drop.onclick=function(){fileEl.click();};
+fileEl.onchange=function(e){ readFiles(e.target.files); };
+["dragenter","dragover"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add("hot");});});
+["dragleave","drop"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove("hot");});});
+drop.addEventListener("drop",function(e){ e.preventDefault(); readFiles(e.dataTransfer.files); });
+window.addEventListener("dragover",function(e){e.preventDefault();});
+window.addEventListener("drop",function(e){e.preventDefault();});
+
+function readFiles(files){
+  var arr=[].slice.call(files); if(!arr.length) return;
+  clearLog();
+  var left=arr.length;
+  arr.forEach(function(f){
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var o=JSON.parse(String(rd.result));
+        var pk=o.pk&&PLAT[o.pk]?o.pk:null;
+        if(!pk){ var m=/期號原始資料_([A-Z]{2})_/.exec(f.name); if(m&&PLAT[m[1]]) pk=m[1]; }
+        if(!pk||!o.games||!o.games.length) throw new Error("格式不符");
+        raw[pk]=o.games;
+        log("✔ "+f.name+" → "+pk+" "+PLAT[pk].name+"，"+o.games.length+" 檔","g");
+      }catch(err){ log("✘ "+f.name+"：讀不出資料（"+err.message+"）","e"); }
+      if(--left===0){ renderPlats(); judgeAll(); }
+    };
+    rd.readAsText(f,"utf-8");
+  });
+}
+
+/* ══════════ 判定全部 ══════════ */
+function judgeAll(){
+  var mode=document.getElementById("mode").value;
+  var dateStr=document.getElementById("theDate").value;
+  var YEAR=new Date().getFullYear();
+  if(mode==="date"&&!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ alert("請先選擇要檢驗的日期。"); return; }
+  loadSaved();
+  var kept=0,upd=0;
+  PKS.forEach(function(pk){
+    (raw[pk]||[]).forEach(function(g){
+      var k=pk+"|"+g.game_id;
+      if(saved.rows[k]&&CONCLUDED[saved.rows[k].result]){ kept++; return; }  /* 已有結論，保留 */
+      var j;
+      try{ j = mode==="date" ? judgeDate(g,dateStr,YEAR) : judgeLatest(g,YEAR); }
+      catch(e){ j={result:"查詢失敗",note:String(e.message||e)}; }
+      saved.rows[k]={pk:pk,plat:PLAT[pk].name,name:g.name,game_id:g.game_id,
+        result:j.result,kind:j.kind||"",prev:j.prev||"",first:j.first||j.now||"",
+        expect:j.expect||"",at:j.at||"",note:j.note||"",
+        isYear:j.resetType==="year",resetHHMM:j.resetHHMM||""};
+      upd++;
+    });
+  });
+  persist();
+  rows=Object.keys(saved.rows).map(function(k){return saved.rows[k];});
+  if(!rows.length) return;
+  if(kept) log("↻ 沿用先前已有結論的 "+kept+" 檔，本次更新 "+upd+" 檔","g");
+  document.getElementById("app").style.display="";
+  document.getElementById("tw").style.display="";
+  document.getElementById("retryPanel").style.display="";
+  fPlat="ALL";fRes="ALL";fKind="";q="";sortKey="";
+  document.getElementById("q").value="";document.getElementById("kind").value="";
+  renderAll(); renderRetryPlan();
+  var ap=document.getElementById("app");
+  if(ap.scrollIntoView) ap.scrollIntoView({behavior:"smooth"});
+}
+
+/* 「待驗」依換日時刻分組，算出建議重跑的時間窗 */
+function renderRetryPlan(){
+  var el=document.getElementById("retryPlan");
+  var wait=rows.filter(function(r){return r.result==="待驗"||r.result==="尚未發生"||r.result==="查詢失敗";});
+  if(!wait.length){
+    el.innerHTML='<div style="color:#2e7d32;font-weight:600">✅ 全部都有結論了，今天不用再跑。</div>';
+    return;
+  }
+  var by={};
+  wait.forEach(function(r){
+    var h=r.resetHHMM||"時間不確定";
+    (by[h]=by[h]||[]).push(r);
+  });
+  var keys=Object.keys(by).sort();
+  var html='<div style="margin-bottom:8px">還有 <b>'+wait.length+'</b> 檔沒結論。'
+    +'每一檔要在<b>它自己換日之後的 2 小時內</b>重跑才驗得到，時間窗如下：</div>'
+    +'<table style="width:auto;font-size:12.5px"><thead><tr>'
+    +'<th style="cursor:default">約幾點換日</th><th style="cursor:default">建議重跑時間窗</th>'
+    +'<th style="cursor:default">檔數</th><th style="cursor:default">彩種</th></tr></thead><tbody>';
+  keys.forEach(function(h){
+    var g=by[h],win="—";
+    var m=/^(\d{2}):(\d{2})$/.exec(h);
+    if(m){
+      var e=String((Number(m[1])+2)%24).padStart(2,"0")+":"+m[2];
+      win=h+" ～ "+e;
+    }
+    var names=g.slice(0,5).map(function(x){return x.pk+"/"+x.name;}).join("、")
+      +(g.length>5?(" …等 "+g.length+" 檔"):"");
+    html+='<tr><td class="mono">'+esc(h)+'</td><td class="mono"><b>'+esc(win)+'</b></td><td>'
+      +g.length+'</td><td style="white-space:normal;max-width:520px">'+esc(names)+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+document.getElementById("btnClear").onclick=function(){
+  if(!confirm("確定要清除這一天已累積的檢驗結果嗎？清除後下次會全部重新判定。")) return;
+  loadSaved(); saved.rows={}; persist(); rows=[];
+  document.getElementById("app").style.display="none";
+  document.getElementById("tw").style.display="none";
+  document.getElementById("retryPanel").style.display="none";
+  clearLog(); log("已清除今日累積結果。");
+};
+document.getElementById("mode").onchange=function(e){
+  document.getElementById("theDate").style.display = e.target.value==="date"?"":"none";
+  loadSaved();
+  if(Object.keys(raw).length) judgeAll();
+};
+document.getElementById("theDate").onchange=function(){ loadSaved(); if(Object.keys(raw).length) judgeAll(); };
+
+/* ══════════ 結果畫面 ══════════ */
+function bucket(r){
+  if(r.result==="錯誤")return"ng";
+  if(r.result==="待驗"||r.result==="查詢失敗")return"wt";
+  if(r.result==="免驗")return"sk";
+  if(r.result==="尚未發生")return"pd";
+  if(r.result==="年份正確")return"yp";
+  if(r.isYear)return"yr";
+  return"ok";
+}
+var CARDS=[
+ {k:"ALL",c:"c-all",label:"全部"},
+ {k:"ng",c:"c-ng",label:"錯誤（要處理）"},
+ {k:"wt",c:"c-wt",label:"待驗"},
+ {k:"pd",c:"c-pd",label:"尚未發生"},
+ {k:"yr",c:"c-yr",label:"★跨年正確"},
+ {k:"ok",c:"c-ok",label:"換日歸零正確"},
+ {k:"yp",c:"c-yp",label:"年份前綴正確"},
+ {k:"sk",c:"c-sk",label:"免驗"}
+];
+function pass(r){
+  if(fPlat!=="ALL"&&r.pk!==fPlat)return false;
+  if(fRes!=="ALL"&&bucket(r)!==fRes)return false;
+  if(fKind&&r.kind!==fKind)return false;
+  if(q){
+    var s=(r.name+" "+r.prev+" "+r.first+" "+r.expect+" "+r.note+" "+r.plat+" "+r.pk).toLowerCase();
+    if(s.indexOf(q.toLowerCase())<0)return false;
+  }
+  return true;
+}
+var ORD={"錯誤":0,"待驗":1,"查詢失敗":2,"尚未發生":3,"正確":4,"年份正確":5,"免驗":6};
+function view(){
+  var list=rows.filter(pass);
+  if(sortKey){
+    list.sort(function(a,b){return String(a[sortKey]||"").localeCompare(String(b[sortKey]||""),"zh-Hant")*sortDir;});
+  }else{
+    list.sort(function(a,b){
+      var d=(ORD[a.result]===undefined?9:ORD[a.result])-(ORD[b.result]===undefined?9:ORD[b.result]);
+      if(d)return d;
+      var pa=PKS.indexOf(a.pk),pb=PKS.indexOf(b.pk);
+      if(pa!==pb)return pa-pb;
+      return String(a.name).localeCompare(String(b.name),"zh-Hant");
+    });
+  }
+  if(grouped){
+    list.sort(function(a,b){
+      var pa=PKS.indexOf(a.pk),pb=PKS.indexOf(b.pk);
+      if(pa!==pb)return pa-pb;
+      var d=(ORD[a.result]===undefined?9:ORD[a.result])-(ORD[b.result]===undefined?9:ORD[b.result]);
+      if(d)return d;
+      return String(a.name).localeCompare(String(b.name),"zh-Hant");
+    });
+  }
+  return list;
+}
+function renderCards(){
+  var base=rows.filter(function(r){
+    if(fPlat!=="ALL"&&r.pk!==fPlat)return false;
+    if(fKind&&r.kind!==fKind)return false;
+    if(q){var s=(r.name+" "+r.prev+" "+r.first+" "+r.expect+" "+r.note).toLowerCase();
+          if(s.indexOf(q.toLowerCase())<0)return false;}
+    return true;
+  });
+  var n={};CARDS.forEach(function(c){n[c.k]=0;});
+  base.forEach(function(r){n[bucket(r)]++;});
+  n.ALL=base.length;
+  var el=document.getElementById("cards");el.innerHTML="";
+  CARDS.forEach(function(c){
+    if(c.k!=="ALL"&&!n[c.k])return;
+    var d=document.createElement("div");
+    d.className="card "+c.c+(fRes===c.k?" on":"");
+    d.innerHTML="<b>"+n[c.k]+"</b><span>"+c.label+"</span>";
+    d.onclick=function(){fRes=(fRes===c.k?"ALL":c.k);renderAll();};
+    el.appendChild(d);
+  });
+}
+function renderTabs(){
+  var el=document.getElementById("tabs");el.innerHTML="";
+  function mk(k,label){
+    var c=rows.filter(function(r){
+      if(k!=="ALL"&&r.pk!==k)return false;
+      if(fRes!=="ALL"&&bucket(r)!==fRes)return false;
+      if(fKind&&r.kind!==fKind)return false;
+      return true;
+    });
+    var bad=c.filter(function(r){return r.result==="錯誤";}).length;
+    var d=document.createElement("div");
+    d.className="tab"+(fPlat===k?" on":"");
+    d.innerHTML=label+"<i>"+c.length+(bad?" ・<span style='color:#c62828;font-weight:700'>✖"+bad+"</span>":"")+"</i>";
+    d.onclick=function(){fPlat=k;renderAll();};
+    el.appendChild(d);
+  }
+  mk("ALL","全部");
+  PKS.forEach(function(p){ if(rows.some(function(r){return r.pk===p;})) mk(p,p+" "+PLAT[p].name); });
+}
+var COLS=[{k:"result",t:"結果"},{k:"pk",t:"平台"},{k:"name",t:"彩種"},{k:"kind",t:"類別"},
+ {k:"prev",t:"歸零前最後一期"},{k:"first",t:"歸零後第一期"},{k:"expect",t:"應為"},
+ {k:"at",t:"發生時間"},{k:"note",t:"說明"}];
+function renderHead(){
+  var tr=document.getElementById("thr");tr.innerHTML="";
+  COLS.forEach(function(c){
+    var th=document.createElement("th");th.textContent=c.t;
+    if(sortKey===c.k){var s=document.createElement("span");s.className="ar";s.textContent=sortDir>0?"▲":"▼";th.appendChild(s);}
+    th.onclick=function(){
+      if(sortKey===c.k){ if(sortDir>0)sortDir=-1; else {sortKey="";sortDir=1;} }
+      else{sortKey=c.k;sortDir=1;}
+      renderAll();
+    };
+    tr.appendChild(th);
+  });
+}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function renderBody(){
+  var list=view(),tb=document.getElementById("tb");tb.innerHTML="";
+  document.getElementById("cnt").textContent="顯示 "+list.length+" / "+rows.length+" 檔";
+  if(!list.length){
+    var tr0=document.createElement("tr");
+    tr0.innerHTML='<td colspan="9" class="empty">沒有符合條件的資料。</td>';
+    tb.appendChild(tr0);return;
+  }
+  var lastP=null;
+  list.forEach(function(r){
+    if(grouped&&r.pk!==lastP){
+      lastP=r.pk;
+      var g=document.createElement("tr");g.className="grouphd";
+      var bad=list.filter(function(x){return x.pk===r.pk&&x.result==="錯誤";}).length;
+      var tot=list.filter(function(x){return x.pk===r.pk;}).length;
+      g.innerHTML='<td colspan="9">'+esc(r.pk)+" "+esc(r.plat)+"　—　"+tot+" 檔"
+        +(bad?'　<span style="color:#c62828">錯誤 '+bad+"</span>":"")+"</td>";
+      tb.appendChild(g);
+    }
+    var b=bucket(r);
+    var tr=document.createElement("tr");tr.className="r-"+b;
+    var mis=r.result==="錯誤"&&r.expect&&r.first&&r.expect!==r.first;
+    tr.innerHTML='<td><span class="tag r-'+b+'">'+esc(r.result)+"</span>"+(r.isYear?'<span class="star">★跨年</span>':"")+"</td>"
+      +"<td>"+esc(r.pk)+" "+esc(r.plat)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.kind)+"</td>"
+      +'<td class="mono">'+esc(r.prev)+"</td>"
+      +'<td class="mono'+(mis?" diff":"")+'">'+esc(r.first)+"</td>"
+      +'<td class="mono">'+esc(r.expect)+"</td><td>"+esc(r.at)+"</td>"
+      +'<td class="note">'+esc(r.note)+"</td>";
+    tb.appendChild(tr);
+  });
+}
+function renderAll(){renderCards();renderTabs();renderHead();renderBody();}
+
+document.getElementById("q").oninput=function(e){q=e.target.value;renderAll();};
+document.getElementById("kind").onchange=function(e){fKind=e.target.value;renderAll();};
+document.getElementById("grp").onchange=function(e){grouped=e.target.checked;renderAll();};
+document.getElementById("onlyNg").onclick=function(){fRes="ng";fPlat="ALL";renderAll();};
+document.getElementById("reset").onclick=function(){
+  fPlat="ALL";fRes="ALL";fKind="";q="";sortKey="";sortDir=1;
+  document.getElementById("q").value="";document.getElementById("kind").value="";renderAll();
+};
+document.getElementById("csv").onclick=function(){
+  var list=view(),qq=function(s){return'"'+String(s==null?"":s).replace(/"/g,'""')+'"';};
+  var head=["結果","平台","平台名","彩種","類別","歸零前最後一期","歸零後第一期","應為","發生時間","說明"];
+  var lines=[head.map(qq).join(",")].concat(list.map(function(r){
+    return [r.result+(r.isYear?" ★跨年":""),r.pk,r.plat,r.name,r.kind,r.prev,r.first,r.expect,r.at,r.note].map(qq).join(",");
+  }));
+  var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  var d=new Date(),z=function(n){return String(n).padStart(2,"0");};
+  a.download="檢驗表格_"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+".csv";
+  document.body.appendChild(a);a.click();a.remove();
+};
+
+/* init */
+(function(){
+  var d=new Date(),z=function(n){return String(n).padStart(2,"0");};
+  document.getElementById("theDate").value=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
+  renderPlats();
+})();
+
+/* 匯出給測試用 */
+window.__engine={detect:detect,expectFirst:expectFirst,expectDayFirst:expectDayFirst,
+  findReset:findReset,judgeLatest:judgeLatest,judgeDate:judgeDate,buildScript:buildScript};
+})();
+</script>
+</body>
+</html>
